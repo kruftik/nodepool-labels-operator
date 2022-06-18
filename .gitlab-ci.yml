@@ -1,0 +1,24 @@
+stages:
+  - build-image
+
+.docker_stage_template:
+  stage: build-image
+  image:
+    name: gcr.io/kaniko-project/executor:${KANIKO_EXECUTOR_TAG}
+    entrypoint: [""]
+  before_script:
+    - echo "{\"auths\":{\"$DOCKER_REGISTRY_REVIEWS\":{\"username\":\"$DOCKER_INTERNAL_USERNAME\",\"password\":\"$DOCKER_INTERNAL_PASSWORD\"},\"$DOCKER_REGISTRY_DEVELOP\":{\"username\":\"$DOCKER_INTERNAL_USERNAME\",\"password\":\"$DOCKER_INTERNAL_PASSWORD\"},\"$DOCKER_INTERNAL_REPOSITORY\":{\"username\":\"$DOCKER_INTERNAL_USERNAME\",\"password\":\"$DOCKER_INTERNAL_PASSWORD\"}}}" > /kaniko/.docker/config.json
+
+build_image:dev:
+  extends: .docker_stage_template
+
+  variables:
+    MANTICORE_IMAGE_TAG: "dev"
+
+  script:
+    - /kaniko/executor --reproducible --context $CI_PROJECT_DIR/ --dockerfile $CI_PROJECT_DIR/Dockerfile --destination ${DOCKER_REGISTRY_DEVELOP}/${CI_PROJECT_PATH}:${CI_COMMIT_REF_SLUG}
+    - echo "Image '${DOCKER_REGISTRY_DEVELOP}/${CI_PROJECT_PATH}:${CI_COMMIT_REF_SLUG}'"
+
+  except:
+    - master
+    - tags
